@@ -40,7 +40,7 @@ _DRUG_CONFIG: dict[str, dict] = {
         "cls":         onto.InsulinDrug,
         "keywords":    ["인슐린", "insulin", "휴마로그", "노보로그", "레버미어",
                         "란투스", "트레시바", "투제오"],
-        "colors":      ["transparent", "clear", "투명"],
+        "colors":      [],
         "min_temp":    2,
         "max_temp":    8,
         "description": "인슐린 계열",
@@ -95,7 +95,7 @@ _DRUG_CONFIG: dict[str, dict] = {
     "vitamin": {
         "cls":         onto.Vitamin,
         "keywords":    ["비타민", "vitamin", "영양제", "보충제", "미네랄"],
-        "colors":      ["orange", "yellow", "오렌지", "노란", "노랑", "주황"],
+        "colors":      [],
         "min_temp":    15,
         "max_temp":    25,
         "description": "비타민 계열",
