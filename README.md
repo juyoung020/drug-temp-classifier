@@ -7,7 +7,9 @@
 
 약품 이미지 또는 약품명을 입력하면 **적정 보관 온도**를 자동으로 분석하는 완전 로컬 AI 대시보드입니다.
 
-[![시연 영상](https://img.youtube.com/vi/T-qNkDxpvDo/maxresdefault.jpg)](https://youtu.be/T-qNkDxpvDo?si=wCmd79lYCG6K-wQg)
+[![시연 영상 1](https://img.youtube.com/vi/T-qNkDxpvDo/maxresdefault.jpg)](https://youtu.be/T-qNkDxpvDo?si=wCmd79lYCG6K-wQg)
+
+[![시연 영상 2](https://img.youtube.com/vi/6dkbLbDoTno/maxresdefault.jpg)](https://youtu.be/6dkbLbDoTno)
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue)
 ![Streamlit](https://img.shields.io/badge/Streamlit-1.35+-red)
