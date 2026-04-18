@@ -167,10 +167,21 @@ with col_result:
 
         st.markdown(f"**{drug_name}**")
 
-        # 계열
-        onto_source_label = f"LLM: `{category}`" if category and category != "unknown" else "키워드 매칭"
-        st.markdown(f"계열 &nbsp; **{onto_desc}**")
-        st.caption(onto_source_label)
+        # LLM vs OWL 계열 일치 비교
+        owl_best = max(onto_scores, key=lambda k: onto_scores[k]) if onto_scores else None
+        llm_cat  = category if category and category != "unknown" else None
+
+        if llm_cat and owl_best:
+            if llm_cat == owl_best:
+                st.success(f"✅ 일치 — LLM·OWL 모두 `{llm_cat}`")
+            else:
+                st.warning(f"⚠️ 불일치 — LLM: `{llm_cat}` / OWL: `{owl_best}`")
+        elif owl_best:
+            st.caption(f"OWL 분류: `{owl_best}`")
+        elif llm_cat:
+            st.caption(f"LLM 분류: `{llm_cat}` (OWL 점수 없음)")
+
+        st.caption(f"계열: **{onto_desc}**")
 
         # OCR·신호 요약
         signals = []
