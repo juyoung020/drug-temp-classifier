@@ -132,9 +132,9 @@ with col_stream:
                 "error": "응답 없음",
             }
 
-# ── 3. 약품명 · 계열 · 최종 결과 ──────────────────────────────────────────────
+# ── 3. 분석 결과 ───────────────────────────────────────────────────────────────
 with col_result:
-    st.subheader("약품명")
+    st.subheader("분석 결과")
 
     if not analyze_btn or (not image_bytes and not text_input.strip()):
         st.info("분석 완료 후 결과가 여기에 표시됩니다.")
@@ -159,36 +159,44 @@ with col_result:
             color=color,
         )
 
-        final_temp   = onto_temp
-        final_source = "OWL 온톨로지"
+        final_temp = onto_temp
 
         if llm_result.get("error"):
             st.error(f"⚠️ {llm_result['error']}")
 
-        st.markdown(f"**{drug_name}**")
+        # 약품명 · 계열
+        st.markdown(f"### {drug_name}")
+        st.markdown(f"**{onto_desc}**")
 
-        # LLM vs OWL 계열 일치 비교
+        st.divider()
+
+        # LLM vs OWL 분류 일치 비교
         owl_best = max(onto_scores, key=lambda k: onto_scores[k]) if onto_scores else None
         llm_cat  = category if category and category != "unknown" else None
 
         if llm_cat and owl_best:
             if llm_cat == owl_best:
-                st.success(f"✅ 일치 — LLM·OWL 모두 `{llm_cat}`")
+                st.success(f"분류 일치 · `{llm_cat}`")
             else:
-                st.warning(f"⚠️ 불일치 — LLM: `{llm_cat}` / OWL: `{owl_best}`")
+                st.warning(f"분류 불일치  \nLLM `{llm_cat}` → OWL `{owl_best}` 채택")
         elif owl_best:
-            st.caption(f"OWL 분류: `{owl_best}`")
+            st.info(f"OWL 분류: `{owl_best}`")
         elif llm_cat:
-            st.caption(f"LLM 분류: `{llm_cat}` (OWL 점수 없음)")
+            st.info(f"LLM 분류: `{llm_cat}`")
 
-        st.caption(f"계열: **{onto_desc}**")
+        # OWL 점수
+        if onto_scores:
+            top = sorted(onto_scores.items(), key=lambda x: x[1], reverse=True)[:4]
+            max_score = top[0][1]
+            lines = [f"`{k}` {'█'*v}{'░'*(max_score-v)} {v}" for k, v in top]
+            st.caption("OWL 점수  \n" + "  \n".join(lines))
 
-        # OCR·신호 요약
+        # 신호 요약
         signals = []
         if ocr_text:
             signals.append(f"OCR: {ocr_text[:50]}")
         if image_text and image_text != ocr_text:
-            signals.append(f"LLM글자: {image_text[:40]}")
+            signals.append(f"텍스트: {image_text[:40]}")
         if intuition:
             signals.append(f"직관: {intuition[:30]}")
         if form and form != "other":
@@ -196,30 +204,20 @@ with col_result:
         if color:
             signals.append(f"색상: {color}")
         if signals:
-            st.caption("  \n".join(signals))
-
-        # 온톨로지 점수 바 차트
-        if onto_scores:
-            top = sorted(onto_scores.items(), key=lambda x: x[1], reverse=True)[:4]
-            max_score = top[0][1]
-            score_lines = []
-            for key, score in top:
-                bar = "█" * score + "░" * (max_score - score)
-                score_lines.append(f"`{key}` {bar} {score}")
-            st.caption("OWL 점수\n" + "  \n".join(score_lines))
+            st.caption("신호  \n" + "  \n".join(signals))
 
         # 신뢰도
         if confidence == "LOW":
-            st.error("🔴 신뢰도: LOW — 직접 확인 필요")
+            st.error("신뢰도 LOW — 직접 확인 필요")
         elif confidence == "MID":
-            st.warning("🟡 신뢰도: MID")
+            st.warning("신뢰도 MID")
         else:
-            st.success("🟢 신뢰도: HIGH")
+            st.success("신뢰도 HIGH")
 
         st.divider()
 
+        # 최종 온도
         st.metric("최종 목표 온도", f"{final_temp[0]}~{final_temp[1]}°C")
-        st.success(f"✅ {final_temp[0]}~{final_temp[1]}°C (OWL 온톨로지 기준)")
 
         log_path = save_log(
             image_filename=image_filename,
