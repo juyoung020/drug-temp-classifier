@@ -159,12 +159,8 @@ with col_result:
             color=color,
         )
 
-        if confidence == "HIGH":
-            final_temp   = llm_temp
-            final_source = "LLM (HIGH 신뢰도)"
-        else:
-            final_temp   = onto_temp
-            final_source = "OWL 온톨로지 점수"
+        final_temp   = onto_temp
+        final_source = "OWL 온톨로지"
 
         if llm_result.get("error"):
             st.error(f"⚠️ {llm_result['error']}")
@@ -211,18 +207,8 @@ with col_result:
 
         st.divider()
 
-        # 온도 비교
-        r1, r2 = st.columns(2)
-        r1.metric("LLM 온도", f"{llm_temp[0]}~{llm_temp[1]}°C")
-        r2.metric("온톨로지", f"{onto_temp[0]}~{onto_temp[1]}°C")
-
-        if llm_temp != onto_temp:
-            st.info(f"불일치 → **{final_source}** 채택")
-
-        st.divider()
-
         st.metric("최종 목표 온도", f"{final_temp[0]}~{final_temp[1]}°C")
-        st.success(f"✅ {final_temp[0]}~{final_temp[1]}°C ({final_source})")
+        st.success(f"✅ {final_temp[0]}~{final_temp[1]}°C (OWL 온톨로지 기준)")
 
         log_path = save_log(
             image_filename=image_filename,

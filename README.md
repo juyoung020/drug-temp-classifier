@@ -48,11 +48,8 @@ flowchart TD
         FORM --> BEST["최고 점수 계열 선택\n→ OWL Individual 조회\n→ 온도 속성 읽기"]
     end
 
-    BEST --> CONF{신뢰도?}
-    CONF --> |HIGH| LLMT["LLM 온도 직접 사용"]
-    CONF --> |MID / LOW| OWLT["OWL 점수 온도 사용"]
-    LLMT --> RESULT["최종 온도 결정\n+ OWL 파일 저장\n+ JSON 로그"]
-    OWLT --> RESULT
+    BEST --> RESULT["최종 온도 결정 (OWL 기준)\n+ OWL 파일 저장\n+ JSON 로그"]
+    BEST --> CONF["신뢰도 표시\nHIGH / MID / LOW"]
 ```
 
 ---
