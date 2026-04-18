@@ -1,5 +1,8 @@
 # 💊 Drug Storage Temperature Classifier
 
+> **2026학년도 ICT(항공드론) 창업메이커톤** 시연용 코드 — 팀 쿨항대  
+> 📋 [팀 노션](https://bottlenose-fiber-1f8.notion.site/2026-ict-b595f24a5b7182fd955301dd30abf628)
+
 약품 이미지 또는 약품명을 입력하면 **적정 보관 온도**를 자동으로 분석하는 완전 로컬 AI 대시보드입니다.
 
 ![Python](https://img.shields.io/badge/Python-3.11+-blue)
@@ -159,3 +162,14 @@ streamlit run app.py
 
 - 본 시스템은 **참고용**이며 실제 의약품 보관은 반드시 공식 지침을 따르세요
 - Ollama `system` 필드 사용 시 Gemma4 thinking이 깨짐 → 시스템 지시는 프롬프트에 직접 삽입
+
+---
+
+## 팀 정보
+
+| | |
+|---|---|
+| 대회 | 2026학년도 ICT(항공드론) 창업메이커톤 |
+| 팀명 | 쿨항대 |
+| 팀장 | 권혁신 |
+| 노션 | [팀 페이지](https://bottlenose-fiber-1f8.notion.site/2026-ict-b595f24a5b7182fd955301dd30abf628) |
