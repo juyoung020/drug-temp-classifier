@@ -1,0 +1,5 @@
+streamlit>=1.35.0
+requests>=2.31.0
+easyocr>=1.7.0
+owlready2>=0.46
+opencv-python-headless>=4.8.0
