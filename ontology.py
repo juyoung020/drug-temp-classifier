@@ -129,9 +129,9 @@ _DRUG_INDIVIDUALS: dict[str, object] = {}
 with onto:
     for _key, _cfg in _DRUG_CONFIG.items():
         _ind = _cfg["cls"](_key)
-        _ind.min_temp         = [_cfg["min_temp"]]
-        _ind.max_temp         = [_cfg["max_temp"]]
-        _ind.drug_description = [_cfg["description"]]
+        _ind.min_temp         = _cfg["min_temp"]
+        _ind.max_temp         = _cfg["max_temp"]
+        _ind.drug_description = _cfg["description"]
         _DRUG_INDIVIDUALS[_key] = _ind
 
 # ── 가중치 ──────────────────────────────────────────────────────────────────
@@ -176,9 +176,9 @@ def _read_owl(key: str) -> tuple[tuple[int, int], str]:
     """OWL 개체에서 온도·설명 읽기."""
     ind = _DRUG_INDIVIDUALS.get(key)
     if ind:
-        mn   = ind.min_temp[0]         if ind.min_temp         else DEFAULT_TEMP_RANGE[0]
-        mx   = ind.max_temp[0]         if ind.max_temp         else DEFAULT_TEMP_RANGE[1]
-        desc = ind.drug_description[0] if ind.drug_description else DEFAULT_DESCRIPTION
+        mn   = ind.min_temp         if ind.min_temp is not None else DEFAULT_TEMP_RANGE[0]
+        mx   = ind.max_temp         if ind.max_temp is not None else DEFAULT_TEMP_RANGE[1]
+        desc = ind.drug_description if ind.drug_description    else DEFAULT_DESCRIPTION
         return (mn, mx), desc
     return DEFAULT_TEMP_RANGE, DEFAULT_DESCRIPTION
 
