@@ -120,11 +120,3 @@ streamlit run app.py
 - Ollama `system` 필드 사용 시 Gemma4 thinking이 깨짐 → 시스템 지시는 프롬프트에 직접 삽입
 
 ---
-
-## 팀 정보
-
-| | |
-|---|---|
-| 대회 | 2026학년도 ICT(항공드론) 창업메이커톤 |
-| 팀명 | 쿨항대 |
-| 노션 | [팀 페이지](https://bottlenose-fiber-1f8.notion.site/2026-ict-b595f24a5b7182fd955301dd30abf628) |
