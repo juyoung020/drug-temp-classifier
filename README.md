@@ -18,39 +18,7 @@
 
 ## 시스템 구조
 
-```mermaid
-flowchart TD
-    IMG[이미지 업로드] --> OCR
-    IMG --> LLM
-    TXT[약품명 텍스트 입력] --> LLM
-
-    subgraph 독립 신호
-        OCR["🔍 EasyOCR\n이미지 텍스트 직독\n~1-2초"]
-    end
-
-    subgraph LLM 신호
-        LLM["🤖 Gemma4\n4가지 신호 추출\n~15-40초"]
-        LLM --> S1["image_text  ×3"]
-        LLM --> S2["intuition   ×2"]
-        LLM --> S3["drug_name   ×2"]
-        LLM --> S4["color       ×1"]
-    end
-
-    OCR --> |"ocr_text ×4"| ONTO
-    S1 --> ONTO
-    S2 --> ONTO
-    S3 --> ONTO
-    S4 --> ONTO
-
-    subgraph OWL 온톨로지
-        ONTO["📊 점수 집계\n계열별 가중치 합산"]
-        ONTO --> FORM["form 충돌 감지\nsyringe+약품키워드\n→ medical_device 제거"]
-        FORM --> BEST["최고 점수 계열 선택\n→ OWL Individual 조회\n→ 온도 속성 읽기"]
-    end
-
-    BEST --> RESULT["최종 온도 결정 (OWL 기준)\n+ OWL 파일 저장\n+ JSON 로그"]
-    BEST --> CONF["신뢰도 표시\nHIGH / MID / LOW"]
-```
+![시스템 구성도](assets/architecture.png)
 
 ---
 
@@ -155,35 +123,6 @@ streamlit run app.py
 
 > Ollama 서버(`localhost:11434`)가 먼저 실행 중이어야 합니다.  
 > Gemma4 모델 용량: 약 9.6GB / 최소 RAM 6.7GiB
-
----
-
-## 향후 개선 방향
-
-현재 구조에서 분류 판단의 핵심 로직은 Python 코드(`ontology.py`)의 키워드 매칭에 있습니다. OWL은 온도 데이터를 저장하고 읽는 지식 베이스 역할에 머물러 있습니다.
-
-목표는 LLM의 역할을 **순수 특징 추출기**로 한정하고, 분류 판단 전체를 OWL 추론기에 위임하는 구조입니다.
-
-```
-현재
-  LLM → 특징 추출 → Python 키워드 매칭 → OWL에서 온도 조회
-
-목표
-  LLM → 객관적 특징만 추출 (텍스트, 형태, 색상)
-           ↓
-  OWL 공리(Axiom) + 추론기(HermiT/Pellet)
-           ↓
-  계열 자동 분류 → 온도 결정
-```
-
-이 구조에서는 분류 규칙이 코드가 아닌 **온톨로지 지식으로 관리**됩니다. 새로운 약품 계열 추가나 분류 기준 수정이 Python 코드 변경 없이 OWL 파일 편집만으로 가능해지며, 여러 시스템 간 지식 공유와 재사용도 용이해집니다.
-
-구체적인 구현 패턴으로는 **Hypothesis(가설 개체) 패턴**을 사용합니다. LLM/OCR에서 추출한 특징을 임시 OWL 개체에 주입하고, `sync_reasoner`를 실행해 추론기가 자동으로 계열을 분류하도록 합니다. 추론 완료 후 임시 개체는 즉시 제거하여 원본 온톨로지를 read-only로 유지합니다.
-
-```
-LLM 추출 특징 → 임시 개체(Hypothesis) 생성 → sync_reasoner 실행
-→ 추론된 클래스 읽기 → 임시 개체 제거 → 온도 결정
-```
 
 ---
 
