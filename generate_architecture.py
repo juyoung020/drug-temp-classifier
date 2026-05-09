@@ -1,123 +1,123 @@
 import matplotlib
 import matplotlib.pyplot as plt
-import matplotlib.patches as mpatches
-from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
+from matplotlib.patches import FancyBboxPatch
 
 matplotlib.rcParams["font.family"] = ["Malgun Gothic", "DejaVu Sans"]
 matplotlib.rcParams["axes.unicode_minus"] = False
 
-fig, ax = plt.subplots(figsize=(14, 18))
-ax.set_xlim(0, 14)
-ax.set_ylim(0, 18)
+fig, ax = plt.subplots(figsize=(13, 22))
+ax.set_xlim(0, 13)
+ax.set_ylim(0, 22)
 ax.axis("off")
 fig.patch.set_facecolor("white")
 
 
-def box(ax, x, y, w, h, label, sublabel="", color="#f0f0f0", ec="#cccccc", fontsize=13, subfontsize=10):
-    rect = FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.15",
-                          facecolor=color, edgecolor=ec, linewidth=1.5)
-    ax.add_patch(rect)
-    cy = y + h / 2 + (0.18 if sublabel else 0)
-    ax.text(x + w / 2, cy, label, ha="center", va="center",
-            fontsize=fontsize, fontweight="bold", color="#222222")
-    if sublabel:
-        ax.text(x + w / 2, y + h / 2 - 0.22, sublabel, ha="center", va="center",
-                fontsize=subfontsize, color="#555555")
-
-
-def arrow(ax, x1, y1, x2, y2):
-    ax.annotate("", xy=(x2, y2), xytext=(x1, y1),
-                arrowprops=dict(arrowstyle="-|>", color="#555555",
-                                lw=1.8, mutation_scale=18))
-
-
-def section_bg(ax, x, y, w, h, label, color="#e8f0fe", ec="#aabbd4"):
+def box(ax, x, y, w, h, title, sub="", color="#f5f5f5", ec="#cccccc", tsize=13, ssize=10.5):
     rect = FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.2",
-                          facecolor=color, edgecolor=ec, linewidth=1.2, linestyle="--", zorder=0)
+                          facecolor=color, edgecolor=ec, linewidth=1.8, zorder=2)
     ax.add_patch(rect)
-    ax.text(x + 0.25, y + h - 0.25, label, ha="left", va="top",
-            fontsize=10, color="#445566", style="italic")
+    ty = y + h / 2 + (0.22 if sub else 0)
+    ax.text(x + w / 2, ty, title, ha="center", va="center",
+            fontsize=tsize, fontweight="bold", color="#1a1a2e", zorder=3)
+    if sub:
+        ax.text(x + w / 2, y + h / 2 - 0.25, sub, ha="center", va="center",
+                fontsize=ssize, color="#444466", zorder=3)
+
+
+def section(ax, x, y, w, h, label, color, ec):
+    rect = FancyBboxPatch((x, y), w, h, boxstyle="round,pad=0.25",
+                          facecolor=color, edgecolor=ec, linewidth=1.5,
+                          linestyle="--", zorder=1)
+    ax.add_patch(rect)
+    ax.text(x + 0.3, y + h - 0.2, label, ha="left", va="top",
+            fontsize=10, color=ec, style="italic", fontweight="bold", zorder=3)
+
+
+def arrow(ax, x1, y1, x2, y2, label=""):
+    ax.annotate("", xy=(x2, y2), xytext=(x1, y1),
+                arrowprops=dict(arrowstyle="-|>", color="#888888",
+                                lw=2.0, mutation_scale=20), zorder=4)
+    if label:
+        mx, my = (x1 + x2) / 2, (y1 + y2) / 2
+        ax.text(mx + 0.15, my, label, fontsize=9, color="#666666", va="center", zorder=4)
 
 
 # ── 1. 입력 ────────────────────────────────────────────────────────────────────
-box(ax, 0.5, 16.5, 5.5, 1.0, "이미지 업로드", "약품 사진 촬영 또는 파일 선택", color="#f5f5f5")
-box(ax, 8.0, 16.5, 5.5, 1.0, "약품명 직접 입력", "텍스트로 약품명 입력", color="#f5f5f5")
+box(ax, 1.0, 20.0, 4.5, 1.3, "이미지 업로드", "약품 사진", color="#f5f5f5", ec="#aaaaaa")
+box(ax, 7.5, 20.0, 4.5, 1.3, "약품명 입력", "텍스트로 입력", color="#f5f5f5", ec="#aaaaaa")
 
-# ── 2. 신호 추출 (3개 병렬) ─────────────────────────────────────────────────────
-section_bg(ax, 0.3, 13.6, 13.4, 2.6, "신호 추출", color="#f0f7ee", ec="#99bb88")
+# ── 2. 신호 추출 ────────────────────────────────────────────────────────────────
+section(ax, 0.4, 16.5, 12.2, 3.0, "신호 추출", "#5a8a5a", "#5a8a5a")
 
-box(ax, 0.7, 14.0, 3.6, 1.8, "EasyOCR", "텍스트 신호 · 약 1~2초", color="#d4edda", ec="#88bb88")
-box(ax, 5.2, 14.0, 3.6, 1.8, "CLIP", "형태 신호 · 1초 미만\n(자유문 설명 반환)", color="#d4edda", ec="#88bb88")
-box(ax, 9.7, 14.0, 3.6, 1.8, "HSV 색상 추출", "색상 신호 · 약 0.1초", color="#d4edda", ec="#88bb88")
+box(ax, 0.8, 17.0, 3.4, 2.0, "EasyOCR", "글자 읽기\n1~2초", color="#d4edda", ec="#7ab87a", tsize=12)
+box(ax, 4.8, 17.0, 3.4, 2.0, "CLIP", "형태 파악\n1초 미만", color="#d4edda", ec="#7ab87a", tsize=12)
+box(ax, 8.8, 17.0, 3.4, 2.0, "HSV 색상", "색상 파악\n0.1초", color="#d4edda", ec="#7ab87a", tsize=12)
 
-# ── 3. Symbolic Scene Representation ──────────────────────────────────────────
-section_bg(ax, 0.3, 9.8, 13.4, 3.5, "OWL 온톨로지", color="#e8eaf6", ec="#7986cb")
+# ── 3. 온톨로지 ─────────────────────────────────────────────────────────────────
+section(ax, 0.4, 10.5, 12.2, 5.5, "OWL 온톨로지  —  LLM 대신 먼저 추론", "#5566bb", "#5566bb")
 
-box(ax, 0.7, 12.2, 12.6, 0.9, "build_scene_repr()", "OCR 텍스트 · CLIP 형태 · HSV 색상 → 온톨로지 개념 매핑", color="#c5cae9", ec="#7986cb")
+box(ax, 1.0, 13.8, 11.0, 1.7,
+    "장면 표현 생성",
+    "세 가지 신호를 온톨로지 개념에 대응시켜 구조화된 맥락 텍스트를 만듭니다",
+    color="#c5cae9", ec="#7986cb", tsize=13)
 
-# Scene repr 내용 박스 (4단계)
-sr_labels = ["관측", "온톨로지 매핑", "추론 체인", "가설"]
-sr_subs = ["OCR / CLIP / HSV", "계열별 점수 산출", "InsulinDrug → ColdChain\n→ Refrigerated → 2~8°C", "최고점 계열 + 근거"]
-sr_colors = ["#e8eaf6", "#e8eaf6", "#e8eaf6", "#e8eaf6"]
-for i, (lbl, sub, col) in enumerate(zip(sr_labels, sr_subs, sr_colors)):
-    bx = 0.7 + i * 3.2
-    box(ax, bx, 10.1, 3.0, 1.8, lbl, sub, color=col, ec="#9fa8da", fontsize=11)
+# 4단계 카드
+stage_data = [
+    ("관측", "OCR · CLIP · HSV\n원본 신호 정리"),
+    ("매핑", "각 약품 계열에\n점수 부여"),
+    ("추론 체인", "인슐린 → 냉장 보관\n→ 2~8°C"),
+    ("가설", "가장 유력한\n계열 제안"),
+]
+for i, (title, sub) in enumerate(stage_data):
+    bx = 0.8 + i * 3.0
+    box(ax, bx, 11.0, 2.6, 2.5, title, sub, color="#e8eaf6", ec="#9fa8da", tsize=11, ssize=9.5)
     if i < 3:
-        arrow(ax, bx + 3.0, 11.0, bx + 3.2, 11.0)
+        arrow(ax, bx + 2.6, 12.25, bx + 3.0, 12.25)
 
-# ── 4. Gemma4 LLM ──────────────────────────────────────────────────────────────
-section_bg(ax, 0.3, 7.3, 13.4, 2.2, "AI 이미지 분석", color="#f3e5f5", ec="#ab47bc")
+# ── 4. Gemma4 ──────────────────────────────────────────────────────────────────
+section(ax, 0.4, 7.2, 12.2, 2.9, "AI 최종 판단", "#884499", "#884499")
 
-box(ax, 0.7, 7.6, 12.6, 1.6,
-    "Gemma4 VLM  (think: False)",
-    "이미지 + Symbolic Scene Representation 참조 → 최종 계열 판단\n온톨로지 사전 추론으로 내부 추론 생략 · 약 3~10초",
-    color="#e1bee7", ec="#ab47bc")
+box(ax, 1.0, 7.7, 11.0, 2.0,
+    "Gemma4  (내부 추론 OFF)",
+    "이미지를 직접 보면서 온톨로지가 제안한 계열을 확인하거나 수정합니다\n3~10초",
+    color="#e1bee7", ec="#aa55cc", tsize=13)
 
-# ── 5. classify_drug ───────────────────────────────────────────────────────────
-section_bg(ax, 0.3, 4.5, 13.4, 2.5, "지식 기반 추론 엔진", color="#e3f2fd", ec="#5c9bd4")
+# ── 5. 결과 ────────────────────────────────────────────────────────────────────
+section(ax, 0.4, 3.8, 12.2, 3.0, "결과", "#aa7700", "#aa7700")
 
-box(ax, 0.7, 4.8, 5.8, 1.8,
-    "신뢰도 산출",
-    "키워드 스코어 vs LLM 계열 비교\nHIGH / MID / LOW",
-    color="#bbdefb", ec="#5c9bd4")
-box(ax, 7.5, 4.8, 5.8, 1.8,
-    "OWL 추론기 (HermiT)",
-    "hasCategoryInd → equivalent_to\n→ requiresStorage → 온도 반환 · 약 0.5~1초",
-    color="#bbdefb", ec="#5c9bd4")
-
-# ── 6. 출력 ────────────────────────────────────────────────────────────────────
-box(ax, 0.7, 2.5, 5.8, 1.5, "신뢰도", "HIGH / MID / LOW", color="#fff9c4", ec="#f9a825")
-box(ax, 7.5, 2.5, 5.8, 1.5, "최종 보관 온도", "결과 저장 및 로그 기록", color="#fff9c4", ec="#f9a825")
+box(ax, 0.8, 4.3, 3.8, 2.0, "신뢰도", "HIGH · MID · LOW\nLLM ↔ 온톨로지 일치 여부", color="#fff9c4", ec="#f9a825", tsize=12)
+box(ax, 5.0, 4.3, 3.0, 2.0, "OWL 추론기", "계층 규칙으로\n온도 자동 도출", color="#fff9c4", ec="#f9a825", tsize=11)
+box(ax, 9.0, 4.3, 3.2, 2.0, "최종 온도", "예) 2~8°C\n냉장 보관", color="#fff9c4", ec="#f9a825", tsize=12)
 
 # ── 화살표 ─────────────────────────────────────────────────────────────────────
 # 입력 → 신호 추출
-arrow(ax, 3.25, 16.5, 2.5, 16.2)
-arrow(ax, 3.25, 16.5, 7.0, 16.2)
-arrow(ax, 10.75, 16.5, 11.5, 16.2)
+arrow(ax, 3.25, 20.0, 2.5, 19.5)
+arrow(ax, 9.75, 20.0, 11.0, 19.5)
+arrow(ax, 6.5, 20.0, 6.5, 19.5)
 
-# 각 신호추출 박스 → build_scene_repr
-arrow(ax, 2.5, 14.0, 4.5, 13.1)
-arrow(ax, 7.0, 14.0, 7.0, 13.1)
-arrow(ax, 11.5, 14.0, 9.5, 13.1)
+# 신호 추출 → 장면 표현 생성
+arrow(ax, 2.5, 17.0, 4.5, 15.5)
+arrow(ax, 6.5, 17.0, 6.5, 15.5)
+arrow(ax, 11.0, 17.0, 8.5, 15.5)
 
-# build_scene_repr → 4단계 내부 (대표 하나)
-arrow(ax, 7.0, 12.2, 7.0, 11.9)
+# 장면 표현 → 카드
+arrow(ax, 6.5, 13.8, 6.5, 13.5)
 
-# 온톨로지 → Gemma4
-arrow(ax, 7.0, 10.1, 7.0, 9.2)
+# 카드 → Gemma4
+arrow(ax, 6.5, 11.0, 6.5, 9.7)
 
-# 약품명 입력 → Gemma4
-arrow(ax, 10.75, 16.5, 10.75, 9.2)
+# 약품명 → Gemma4
+arrow(ax, 9.75, 20.0, 9.75, 9.7)
 
-# Gemma4 → classify_drug
-arrow(ax, 4.0, 7.6, 3.6, 6.6)
-arrow(ax, 10.0, 7.6, 10.4, 6.6)
+# Gemma4 → 결과
+arrow(ax, 3.5, 7.7, 2.7, 6.3)
+arrow(ax, 6.5, 7.7, 6.5, 6.3)
+arrow(ax, 9.5, 7.7, 10.6, 6.3)
 
-# classify_drug → 출력
-arrow(ax, 3.6, 4.8, 3.6, 4.0)
-arrow(ax, 10.4, 4.8, 10.4, 4.0)
+# OWL → 최종온도
+arrow(ax, 8.0, 5.3, 9.0, 5.3)
 
 plt.tight_layout(pad=0.5)
 plt.savefig("assets/architecture.png", dpi=150, bbox_inches="tight",
             facecolor="white", edgecolor="none")
-print("저장 완료: assets/architecture.png")
+print("저장 완료")
