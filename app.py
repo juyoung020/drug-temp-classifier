@@ -143,7 +143,14 @@ with col_result:
         form       = llm_result.get("form", "other")
         color      = llm_result.get("color", "")
 
-        onto_temp, onto_desc, confidence = classify_drug(category=category)
+        onto_temp, onto_desc, confidence = classify_drug(
+            category=category,
+            drug_name=drug_name,
+            image_text=image_text,
+            intuition=intuition,
+            color=color,
+            form=form,
+        )
 
         final_temp = onto_temp
 
@@ -175,7 +182,9 @@ with col_result:
             st.caption("신호  \n" + "  \n".join(signals))
 
         # 신뢰도
-        if confidence == "LOW":
+        if confidence == "HIGH":
+            st.success("신뢰도 HIGH — LLM·온톨로지 일치")
+        elif confidence == "LOW":
             st.error("신뢰도 LOW — 직접 확인 필요")
         else:
             st.warning("신뢰도 MID")
