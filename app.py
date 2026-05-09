@@ -2,7 +2,7 @@ import streamlit as st
 
 from llm_client import stream_query_ollama
 from log_manager import save_log
-from ontology import classify_drug, save_owl
+from ontology import build_scene_repr, classify_drug, save_owl
 
 st.set_page_config(
     page_title="약품 보관 온도 인식 시스템",
@@ -15,7 +15,10 @@ st.caption("Gemma4 · EasyOCR · OWL 온톨로지 · 완전 로컬")
 
 col_input, col_stream, col_result = st.columns([1, 2, 1.1])
 llm_result: dict | None = None
-ocr_text = ""
+ocr_text   = ""
+img_color  = ""
+clip_desc  = ""
+scene_repr: str | None = None
 
 # ── 1. 입력 ────────────────────────────────────────────────────────────────────
 with col_input:
@@ -47,6 +50,19 @@ with col_input:
         if ocr_text:
             st.caption(f"OCR: {ocr_text[:80]}")
 
+        # 색상·형태 추출 + Symbolic Scene Representation 생성
+        with st.spinner("색상·형태 분석 중 (CLIP)..."):
+            try:
+                from image_analyzer import detect_form, extract_dominant_color
+                img_color = extract_dominant_color(image_bytes)
+                clip_desc = detect_form(image_bytes)
+                scene_repr = build_scene_repr(ocr_text, clip_desc, img_color)
+            except Exception:
+                pass
+
+        if scene_repr:
+            st.caption("온톨로지 장면 표현 생성됨 → LLM에 주입")
+
     st.divider()
 
     text_input: str = st.text_input(
@@ -56,45 +72,43 @@ with col_input:
 
     analyze_btn = st.button("분석 시작", type="primary", use_container_width=True)
 
-# ── 2. 인식결과 — 추론 · JSON 나란히 ──────────────────────────────────────────
+# ── 2. 인식결과 — 온톨로지 맥락 · LLM 응답 나란히 ────────────────────────────
 with col_stream:
     st.subheader("인식결과")
 
     if not analyze_btn:
-        st.info("분석을 시작하면 LLM 추론이 실시간으로 표시됩니다.")
+        st.info("분석을 시작하면 온톨로지 맥락과 LLM 응답이 표시됩니다.")
 
     elif not image_bytes and not text_input.strip():
         st.warning("이미지 또는 약품명을 입력해주세요.")
 
     else:
-        think_col, json_col = st.columns(2)
+        onto_col, json_col = st.columns(2)
 
-        with think_col:
-            st.caption("💭 추론 (Thinking)")
-            thinking_ph = st.empty()
+        with onto_col:
+            st.caption("🧠 온톨로지 장면 표현")
+            if scene_repr:
+                st.code(scene_repr, language=None)
+            else:
+                st.info("신호 없음 — 힌트 없이 LLM 실행")
 
         with json_col:
-            st.caption("📝 JSON 응답")
+            st.caption("📝 LLM 응답")
             response_ph = st.empty()
 
-        thinking_text = ""
         response_text = ""
 
         for event in stream_query_ollama(
             image_bytes,
             text_input.strip() or None,
             ocr_text=ocr_text,
+            scene_repr=scene_repr,
         ):
-            if event["type"] == "thinking":
-                thinking_text += event["text"]
-                thinking_ph.markdown(thinking_text + "▌")
-
-            elif event["type"] == "chunk":
+            if event["type"] == "chunk":
                 response_text += event["text"]
                 response_ph.code(response_text + "▌", language="json")
 
             elif event["type"] == "result":
-                thinking_ph.markdown(thinking_text or "*(thinking 미지원)*")
                 try:
                     import json as _json
                     pretty = _json.dumps(_json.loads(response_text), indent=2, ensure_ascii=False)

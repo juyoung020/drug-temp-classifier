@@ -242,6 +242,59 @@ def _score_signals(
     return best if scores[best] > 0 else None
 
 
+_CHAIN_TEXT: dict[str, str] = {
+    "insulin":          "InsulinDrug ← hasCategoryInd = cat_insulin\n  ↓ (∈ ColdChainDrug)\n  requiresStorage = Refrigerated\n  → 예상 보관 온도: 2°C ~ 8°C",
+    "vaccine_biologic": "VaccineBiologic ← hasCategoryInd = cat_vaccine_biologic\n  ↓ (∈ ColdChainDrug)\n  requiresStorage = Refrigerated\n  → 예상 보관 온도: 2°C ~ 8°C",
+    "blood_product":    "BloodProduct ← hasCategoryInd = cat_blood_product\n  requiresStorage = BloodStorage\n  → 예상 보관 온도: 2°C ~ 6°C",
+    "chemo_hormone":    "ChemoHormone ← hasCategoryInd = cat_chemo_hormone\n  ↓ (∈ ColdChainDrug)\n  requiresStorage = Refrigerated\n  → 예상 보관 온도: 2°C ~ 8°C",
+    "antibiotic":       "Antibiotic ← hasCategoryInd = cat_antibiotic\n  ↓ (∈ RoomTempDrug)\n  requiresStorage = RoomTemp\n  → 예상 보관 온도: 15°C ~ 25°C",
+    "analgesic":        "Analgesic ← hasCategoryInd = cat_analgesic\n  ↓ (∈ RoomTempDrug)\n  requiresStorage = RoomTemp\n  → 예상 보관 온도: 15°C ~ 25°C",
+    "vitamin":          "Vitamin ← hasCategoryInd = cat_vitamin\n  ↓ (∈ RoomTempDrug)\n  requiresStorage = RoomTemp\n  → 예상 보관 온도: 15°C ~ 25°C",
+    "general_oral":     "GeneralOral ← hasCategoryInd = cat_general_oral\n  ↓ (∈ RoomTempDrug)\n  requiresStorage = RoomTemp\n  → 예상 보관 온도: 15°C ~ 25°C",
+    "medical_device":   "MedicalDevice ← hasCategoryInd = cat_medical_device\n  requiresStorage = DeviceTemp\n  → 예상 보관 온도: 15°C ~ 30°C",
+}
+
+
+def build_scene_repr(ocr_text: str, clip_desc: str, color: str) -> str | None:
+    text = ocr_text.lower()
+    clip_lower = clip_desc.lower()
+
+    scores: dict[str, int] = {}
+    for cat, cls in _CAT_CLASS_MAP.items():
+        score  = sum(1 for kw in _get_list(cls, "category_keywords") if kw.lower() in text)
+        score += 1 if color and color in _get_list(cls, "typical_colors") else 0
+        score += sum(1 for f in _get_list(cls, "typical_forms") if f in clip_lower)
+        scores[cat] = score
+
+    best = max(scores, key=scores.get)
+    if scores[best] == 0:
+        return None
+
+    top = sorted([(c, s) for c, s in scores.items() if s > 0], key=lambda x: -x[1])[:4]
+    mapping_lines = "\n".join(
+        f"  {c:<18} {'●' * s:<6} {s}점{'  ← 최고점' if c == best else ''}"
+        for c, s in top
+    )
+
+    ocr_display   = f'"{ocr_text[:60]}"' if ocr_text else "(없음)"
+    clip_display  = clip_desc if clip_desc else "(없음)"
+    color_display = color if color else "(없음)"
+
+    return (
+        "[약품 장면 표현 (Symbolic Scene Representation)]\n\n"
+        "── 관측 ──────────────────────────────────────\n"
+        f"텍스트 (OCR)  : {ocr_display}\n"
+        f"형태 (CLIP)   : {clip_display}\n"
+        f"색상 (HSV)    : {color_display}\n\n"
+        "── 온톨로지 매핑 ──────────────────────────────\n"
+        f"{mapping_lines}\n\n"
+        "── 추론 체인 ──────────────────────────────────\n"
+        f"{_CHAIN_TEXT.get(best, '')}\n\n"
+        "── 가설 ───────────────────────────────────────\n"
+        f"{best} ({_DRUG_CONFIG[best]['description']}) — 이미지로 직접 확인 후 최종 판단하세요."
+    )
+
+
 def classify_drug(
     category:   str | None = None,
     drug_name:  str = "",

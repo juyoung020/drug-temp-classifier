@@ -93,16 +93,18 @@ def stream_query_ollama(
     image_bytes: bytes | None,
     text_input:  str | None,
     ocr_text:    str = "",
+    scene_repr:  str | None = None,
 ) -> Generator[dict, None, None]:
-    user_part = f"약품명: {text_input}\n" if text_input else ""
-    ocr_part  = f"OCR 추출 텍스트: {ocr_text}\n" if ocr_text else ""
-    prompt = user_part + ocr_part + "\n" + PROMPT
+    user_part  = f"약품명: {text_input}\n" if text_input else ""
+    ocr_part   = f"OCR 추출 텍스트: {ocr_text}\n" if ocr_text else ""
+    scene_part = f"{scene_repr}\n\n" if scene_repr else ""
+    prompt = user_part + ocr_part + scene_part + "\n" + PROMPT
     payload: dict = {
         "model": MODEL_NAME,
         "system": SYSTEM_INSTRUCTION,
         "prompt": prompt,
         "stream": True,
-        "think": True,
+        "think": False,
         "format": {
             "type": "object",
             "properties": {
