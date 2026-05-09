@@ -8,7 +8,6 @@ LOG_DIR = Path("logs")
 def save_log(
     image_filename: str,
     drug_name: str,
-    llm_temp_range: tuple[int, int],
     ontology_result: dict,
     final_temp_range: tuple[int, int],
     confidence: str,
@@ -22,7 +21,6 @@ def save_log(
     log_data = {
         "이미지_파일명": image_filename,
         "약품명": drug_name,
-        "LLM_판단_온도": {"최저": llm_temp_range[0], "최고": llm_temp_range[1]},
         "온톨로지_결과": {
             "계열": ontology_result["description"],
             "온도": {

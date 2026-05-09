@@ -6,49 +6,33 @@ from collections.abc import Generator
 import requests
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL_NAME = "gemma4"
+MODEL_NAME = "gemma4:e4b"
+
+from ontology import _DRUG_CONFIG
+
+_CATEGORY_ENUM = list(_DRUG_CONFIG.keys()) + ["unknown"]
+_CATEGORY_LINES = "\n".join(
+    f"  {key:<18} → {cfg['description']}"
+    for key, cfg in _DRUG_CONFIG.items()
+) + "\n  unknown            → 분류 불명"
 
 SYSTEM_INSTRUCTION = (
     "You are a drug storage temperature classifier. "
-    "Think briefly in 1-2 sentences only. "
-    "Your final response MUST be a raw JSON object only — no explanation, no markdown, no code blocks. "
-    "The response must start with '{' and end with '}'. Nothing else.\n\n"
+    "Analyze the provided image and/or drug name and classify it into exactly one category.\n\n"
+    f"Category definitions:\n{_CATEGORY_LINES}\n\n"
+    "Respond in JSON only."
 )
 
-PROMPT = """아래 JSON만 반환해줘. JSON 외 문장·설명·주석 절대 금지. 첫 글자는 반드시 '{'.
-
-4가지 신호를 순서대로 채워:
-
-{
-  "image_text": "이미지에서 읽힌 텍스트 원문 그대로 (없으면 빈 문자열)",
-  "intuition": "텍스트 무시하고 전체적 인상으로 판단한 약품명 또는 계열명",
-  "form": "vial 또는 pen 또는 syringe 또는 tablet 또는 bottle 또는 package 또는 other",
-  "color": "주요 색상 (예: white, blue, orange, transparent)",
-  "약품명": "image_text·intuition·form·color 종합한 최종 약품명",
-  "계열": "아래 목록 중 정확히 하나",
-  "온도_최저": 숫자,
-  "온도_최고": 숫자,
-  "신뢰도": "HIGH 또는 MID 또는 LOW"
-}
-
-신뢰도:
-HIGH → image_text에서 약품명 직접 확인됨
-MID  → image_text 부분 일치 또는 form+color로 강하게 추론
-LOW  → 텍스트 없고 형태·색상만으로 추측, 또는 확신 없음
-
-계열 목록:
-insulin          → 인슐린 계열
-vaccine_biologic → 백신·생물의약품 계열
-blood_product    → 혈액제제 계열 (혈액팩, 혈장, 알부민)
-chemo_hormone    → 항암·호르몬제 계열
-antibiotic       → 항생제 계열
-analgesic        → 진통·해열제 계열
-vitamin          → 비타민 계열
-general_oral     → 일반 경구약 계열 (혈압약, 당뇨약, 위장약 등)
-medical_device   → 의료기기 (약품 라벨 없는 순수 기기만)
-unknown          → 분류 불명
-
-규칙: 인슐린 용기·펜에 부착된 주사침이라도 용기에 약품명 있으면 insulin으로 분류."""
+PROMPT = (
+    "Analyze the image and fill in the following fields:\n"
+    "- image_text: ONLY the exact text visible on the packaging/label. "
+    "Copy it verbatim. Do NOT describe or explain. If no text is visible, use empty string.\n"
+    "- form: Physical form of the drug/device.\n"
+    "- color: Primary color.\n"
+    "- 약품명: Final drug name conclusion.\n"
+    "- 계열: One category from the list defined in your instructions.\n"
+    "- intuition: Drug name or category in 3 words or less. No explanation."
+)
 
 
 def _encode_image(image_bytes: bytes) -> str:
@@ -70,37 +54,38 @@ def _parse_response(text: str) -> dict | None:
     return None
 
 
+_VALID_CATEGORIES = set(_CATEGORY_ENUM)
+
+_VALID_FORMS   = {"vial", "pen", "syringe", "tablet", "bottle", "package", "other"}
+_VALID_COLORS  = {"white", "transparent", "yellow", "orange", "red", "blue", "green", "pink", "purple", "brown", "amber", "other"}
+
+
 def _normalize(parsed: dict, fallback_name: str) -> dict:
     drug_name = (
         parsed.get("약품명") or parsed.get("drug_name") or parsed.get("name")
         or fallback_name or "알 수 없음"
     )
-    temp_min = parsed.get("온도_최저") or parsed.get("temp_min") or parsed.get("min_temp")
-    temp_max = parsed.get("온도_최고") or parsed.get("temp_max") or parsed.get("max_temp")
 
-    if temp_min is None or temp_max is None:
-        nums = re.findall(r"\d+(?:\.\d+)?", str(parsed.get("온도_범위") or ""))
-        temp_min, temp_max = (float(nums[0]), float(nums[1])) if len(nums) >= 2 else (2, 8)
+    raw_category = parsed.get("계열") or parsed.get("category") or None
+    category = str(raw_category).strip().lower() if raw_category else None
+    if category not in _VALID_CATEGORIES:
+        category = None
 
-    confidence = parsed.get("신뢰도") or parsed.get("confidence") or "LOW"
-    if confidence not in ("HIGH", "MID", "LOW"):
-        confidence = "MID"
+    raw_form = str(parsed.get("form") or "other").strip().lower()
+    form = raw_form if raw_form in _VALID_FORMS else "other"
 
-    category   = parsed.get("계열") or parsed.get("category") or None
     image_text = parsed.get("image_text") or ""
     intuition  = parsed.get("intuition") or ""
-    form       = parsed.get("form") or "other"
-    color      = parsed.get("color") or ""
+    raw_color  = str(parsed.get("color") or "other").strip().lower()
+    color      = raw_color if raw_color in _VALID_COLORS else "other"
 
     return {
         "drug_name":  str(drug_name),
-        "category":   str(category).strip().lower() if category else None,
+        "category":   category,
         "image_text": str(image_text),
         "intuition":  str(intuition),
-        "form":       str(form).strip().lower(),
-        "color":      str(color),
-        "temp_range": (int(float(temp_min)), int(float(temp_max))),
-        "confidence": confidence,
+        "form":       form,
+        "color":      color,
     }
 
 
@@ -111,12 +96,25 @@ def stream_query_ollama(
 ) -> Generator[dict, None, None]:
     user_part = f"약품명: {text_input}\n" if text_input else ""
     ocr_part  = f"OCR 추출 텍스트: {ocr_text}\n" if ocr_text else ""
-    prompt = SYSTEM_INSTRUCTION + user_part + ocr_part + "\n" + PROMPT
+    prompt = user_part + ocr_part + "\n" + PROMPT
     payload: dict = {
         "model": MODEL_NAME,
+        "system": SYSTEM_INSTRUCTION,
         "prompt": prompt,
         "stream": True,
         "think": True,
+        "format": {
+            "type": "object",
+            "properties": {
+                "image_text": {"type": "string"},
+                "form":       {"type": "string", "enum": ["vial", "pen", "syringe", "tablet", "bottle", "package", "other"]},
+                "color":      {"type": "string", "enum": ["white", "transparent", "yellow", "orange", "red", "blue", "green", "pink", "purple", "brown", "amber", "other"]},
+                "약품명":     {"type": "string"},
+                "계열":       {"type": "string", "enum": _CATEGORY_ENUM},
+                "intuition":  {"type": "string"},
+            },
+            "required": ["image_text", "intuition", "form", "color", "약품명", "계열"],
+        },
     }
     if image_bytes:
         payload["images"] = [_encode_image(image_bytes)]
@@ -164,10 +162,8 @@ def stream_query_ollama(
                     "intuition":  "",
                     "form":       "other",
                     "color":      "",
-                    "temp_range": (2, 8),
-                    "confidence": "LOW",
                     "raw_response": full_text,
-                    "error": "JSON 파싱 실패 — 기본 냉장 온도(2~8°C) 적용",
+                    "error": "JSON 파싱 실패",
                 }
 
     except requests.exceptions.ConnectionError:

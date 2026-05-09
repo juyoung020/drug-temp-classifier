@@ -91,7 +91,7 @@ with col_stream:
 
             elif event["type"] == "chunk":
                 response_text += event["text"]
-                response_ph.code(response_text + "▌", language=None)
+                response_ph.code(response_text + "▌", language="json")
 
             elif event["type"] == "result":
                 thinking_ph.markdown(thinking_text or "*(thinking 미지원)*")
@@ -112,8 +112,6 @@ with col_stream:
                     "intuition":  "",
                     "form":       "other",
                     "color":      "",
-                    "temp_range": (2, 8),
-                    "confidence": "LOW",
                     "raw_response": "",
                     "error": event["text"],
                 }
@@ -126,8 +124,6 @@ with col_stream:
                 "intuition":  "",
                 "form":       "other",
                 "color":      "",
-                "temp_range": (2, 8),
-                "confidence": "LOW",
                 "raw_response": response_text,
                 "error": "응답 없음",
             }
@@ -141,23 +137,13 @@ with col_result:
 
     elif llm_result is not None:
         drug_name  = llm_result["drug_name"]
-        llm_temp   = llm_result["temp_range"]
-        confidence = llm_result["confidence"]
         category   = llm_result.get("category")
         image_text = llm_result.get("image_text", "")
         intuition  = llm_result.get("intuition", "")
         form       = llm_result.get("form", "other")
         color      = llm_result.get("color", "")
 
-        onto_temp, onto_desc, onto_scores = classify_drug(
-            drug_name,
-            category=category,
-            ocr_text=ocr_text,
-            image_text=image_text,
-            intuition=intuition,
-            form=form,
-            color=color,
-        )
+        onto_temp, onto_desc, confidence = classify_drug(category=category)
 
         final_temp = onto_temp
 
@@ -170,26 +156,8 @@ with col_result:
 
         st.divider()
 
-        # LLM vs OWL 분류 일치 비교
-        owl_best = max(onto_scores, key=lambda k: onto_scores[k]) if onto_scores else None
-        llm_cat  = category if category and category != "unknown" else None
-
-        if llm_cat and owl_best:
-            if llm_cat == owl_best:
-                st.success(f"분류 일치 · `{llm_cat}`")
-            else:
-                st.warning(f"분류 불일치  \nLLM `{llm_cat}` → OWL `{owl_best}` 채택")
-        elif owl_best:
-            st.info(f"OWL 분류: `{owl_best}`")
-        elif llm_cat:
-            st.info(f"LLM 분류: `{llm_cat}`")
-
-        # OWL 점수
-        if onto_scores:
-            top = sorted(onto_scores.items(), key=lambda x: x[1], reverse=True)[:4]
-            max_score = top[0][1]
-            lines = [f"`{k}` {'█'*v}{'░'*(max_score-v)} {v}" for k, v in top]
-            st.caption("OWL 점수  \n" + "  \n".join(lines))
+        if category and category != "unknown":
+            st.info(f"LLM 분류: `{category}`")
 
         # 신호 요약
         signals = []
@@ -209,10 +177,8 @@ with col_result:
         # 신뢰도
         if confidence == "LOW":
             st.error("신뢰도 LOW — 직접 확인 필요")
-        elif confidence == "MID":
-            st.warning("신뢰도 MID")
         else:
-            st.success("신뢰도 HIGH")
+            st.warning("신뢰도 MID")
 
         st.divider()
 
@@ -222,7 +188,6 @@ with col_result:
         log_path = save_log(
             image_filename=image_filename,
             drug_name=drug_name,
-            llm_temp_range=llm_temp,
             ontology_result={"temp_range": onto_temp, "description": onto_desc},
             final_temp_range=final_temp,
             confidence=confidence,
